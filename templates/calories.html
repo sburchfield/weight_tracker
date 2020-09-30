@@ -1,0 +1,122 @@
+<main>
+  <div class="row justify-content-center home-row">
+    <div class="col-lg-4">
+      <div class="card" style="padding: 3em 1em;">
+        <h1 class="text-center">Calorie Tracker</h1>
+        <form>
+          <label for="weight">Calories</label>
+          <div id="calorie-wrapper"></div>
+          <button type="button" class="btn btn-secondary" id="add-button" style="display:block; margin-left: auto;">+</button>
+          <button type="submit" class="btn btn-primary btn-submit">Submit</button>
+        </form>
+        <div class="text-center" style="margin: 2em auto;">
+            <h4>Total: <span id="total"></span></h4>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="modal" tabindex="-1" role="dialog" id="modal">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 style="display: inline-block; font-size: 1.5em;" class="modal-title"></h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="icon"></div>
+        <p class="text-center"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+  $(function(){
+
+    $.ajax({
+      method: "GET",
+      url: "/get/calories/cal",
+    }).done(function(resp) {
+
+      let calories = resp.Calories
+      let total = resp.Total.total
+
+      handleTotal(total, true)
+
+      if( calories.length > 0 ){
+        calories.forEach(function(object){
+          let html = `<div class="form-group">
+                        <input type="number" class="form-control" id="calories" name="calories" value="${object.calories}" disabled>
+                      </div>`
+                      $("#calorie-wrapper").append(html)
+        })
+      }else{
+        let html = `<div class="form-group">
+                      <input type="number" class="form-control" id="calories" name="calories">
+                    </div>`
+        $("#calorie-wrapper").append(html)
+      }
+
+    })
+    .fail(function(err) {
+      console.log(err);
+      $('#modal').modal()
+      $('.modal-title').html("Network Error")
+      $('.modal-body p').html("Check your ajax connection. Error is being printed out in console.")
+      $('.modal-body .icon').html('<i class="fa fa-exclamation-triangle" aria-hidden="true"></i>')
+    });
+
+    $('#add-button').click(function(){
+      let html = `<div class="form-group">
+                    <input type="number" class="form-control" id="calories" name="calories">
+                  </div>`
+
+        $('#calorie-wrapper').append(html)
+    })
+
+    $('form').submit(function(e){
+      e.preventDefault()
+
+      let form = $(this).serializeArray()
+      let data = []
+
+      form.forEach(function(object){
+        data.push({calories: parseInt(object.value)})
+      })
+
+
+      $.ajax({
+        method: "POST",
+        url: "/update/calories",
+        data: JSON.stringify(data)
+      })
+      .done(function(resp){
+          $('#modal').modal()
+          $('.modal-title').html(resp.Title)
+          $('.modal-body p').html(resp.Message)
+          $('.modal-body .icon').html(resp.Icon)
+
+          if(!resp.Error){
+            handleTotal(resp.Total.total, false)
+            $('input').attr('disabled', true)
+          }
+
+      })
+      .fail(function(err){
+        console.log(err);
+        $('#modal').modal()
+        $('.modal-title').html("Network Error")
+        $('.modal-body p').html("Check your ajax connection. Error is being printed out in console.")
+        $('.modal-body .icon').html('<i class="fa fa-exclamation-triangle" aria-hidden="true"></i>')
+      })
+    })
+
+  })
+</script>

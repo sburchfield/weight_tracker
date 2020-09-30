@@ -1,0 +1,238 @@
+
+
+<main>
+    <div>
+      <div class="row justify-content-center home-row">
+        <div class="col-xl-6">
+          <div class="card">
+            <h1 class="text-center">Weight</h1>
+            <div class="chart-container" style="position: relative; height:40vh; width:100%">
+              <canvas id="myChart" height="385"></canvas>
+            </div>
+            <div class="row">
+              <div class="col-12" style="text-align: center; margin-top: 1em;">
+                <h5 id="difference"></h5>
+                <h5>Latest: <span id="today"></span> lbs</h5>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-6">
+          <div class="card">
+            <h1 class="text-center">Calories</h1>
+            <div class="chart-container" style="position: relative; height:40vh; width:100%">
+              <canvas id="calChart" height="385"></canvas>
+            </div>
+            <div class="row">
+              <div class="col-12" style="text-align: center; margin-top: 1em;">
+                <h5 id="avg"></h5>
+                <h5>Today: <span id="total"></span> calories</h5>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+</main>
+
+<div class="modal" tabindex="-1" role="dialog" id="modal">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 style="display: inline-block; font-size: 1.5em;" class="modal-title"></h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="icon"></div>
+        <p class="text-center"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js"></script>
+<script src="https://unpkg.com/dayjs@1.8.21/dayjs.min.js"></script>
+<script type="text/javascript">
+  $(function(){
+
+    function rndNum(from, to){
+			return Math.floor((Math.random()*(to - from + 1)) + from);
+		}
+
+    var ctx = document.getElementById('myChart').getContext('2d');
+    var calCTX = document.getElementById('calChart').getContext('2d');
+
+    $.ajax({
+      method: "GET",
+      url: "/get/weights",
+    }).done(function(resp) {
+      // console.log(resp);
+
+      let data = resp.Weights
+
+      let weights = [];
+      let days = [];
+
+      data.forEach(function(object){
+        weights.push(object.Weight)
+        days.push(dayjs(object.CreatedAt).format('MM-DD-YYYY'))
+      })
+
+      let first = data[0]
+      let last = data[data.length - 1]
+
+      let firstDate = new Date(first.CreatedAt)
+      let lastDate = new Date(last.CreatedAt)
+
+
+      let diffTime = Math.abs(lastDate - firstDate);
+      let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      let diffWeight = first.Weight - last.Weight
+
+      $("#today").html(last.Weight)
+      $("#difference").html(`You've lost ${diffWeight.toFixed(1)} lbs in ${diffDays} days`)
+
+      var myChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+              labels: days,
+              datasets: [{
+                  label: 'Weights',
+                  data: weights,
+                  backgroundColor: [
+                      'rgba(54, 162, 235, 0.2)',
+                  ],
+                  borderColor: [
+                      'rgba(54, 162, 235, 1)',
+                  ],
+                  borderWidth: 2
+              }]
+          },
+          options: {
+              maintainAspectRatio: false,
+              responsive:true,
+              scales: {
+                  // yAxes: [{
+                  //     ticks: {
+                  //         beginAtZero: true
+                  //     }
+                  // }],
+                  xAxes: [{
+                        ticks: {
+                            autoSkip: false,
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }]
+              }
+          }
+      });
+    })
+    .fail(function(err){
+      console.log(err);
+      $('#modal').modal()
+      $('.modal-title').html("Network Error")
+      $('.modal-body p').html("Check your ajax connection. Error is being printed out in console.")
+      $('.modal-body .icon').html('<i class="fa fa-exclamation-triangle" aria-hidden="true"></i>')
+    })
+
+    $.ajax({
+      method: "GET",
+      url: "/get/calories/chart",
+    }).done(function(resp) {
+
+      console.log(resp);
+
+      let totalCal = 0;
+
+      let data = resp.Total
+
+      let calories = [];
+      let days = [];
+      let backgroundColors = [];
+      let borderColors = [];
+
+
+      let pullColorsBorder = [
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 206, 86, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(153, 102, 255, 1)',
+                'rgba(255, 159, 64, 1)'
+            ]
+
+            let pullColorsBG = [
+                      'rgba(255, 99, 132, 0.2)',
+                      'rgba(54, 162, 235, 0.2)',
+                      'rgba(255, 206, 86, 0.2)',
+                      'rgba(75, 192, 192, 0.2)',
+                      'rgba(153, 102, 255, 0.2)',
+                      'rgba(255, 159, 64, 0.2)'
+                  ]
+
+      data.forEach(function(object){
+        let index = rndNum(0,5)
+        calories.push(object.total)
+        days.push(dayjs(object.date).format('MM-DD-YYYY'))
+        backgroundColors.push(pullColorsBG[index])
+        borderColors.push(pullColorsBorder[index])
+
+        totalCal = totalCal + object.total
+      })
+
+      let avg = totalCal / data.length
+      let todaysCal = data[data.length - 1].total
+
+      $("#avg").html(`Average: ${avg} calories per day`)
+      handleTotal(todaysCal, false)
+
+      var calChart = new Chart(calCTX, {
+          responsive:true,
+          type: 'bar',
+          data: {
+              labels: days,
+              datasets: [{
+                  label: 'Calories',
+                  data: calories,
+                  backgroundColor: backgroundColors,
+                  borderColor: borderColors,
+                  borderWidth: 2
+              }]
+          },
+          options: {
+              maintainAspectRatio: false,
+              responsive:true,
+              scales: {
+                  yAxes: [{
+                      ticks: {
+                          beginAtZero: true
+                      }
+                  }],
+                  xAxes: [{
+                        ticks: {
+                            autoSkip: false,
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }]
+              }
+          }
+      });
+
+    })
+    .fail(function(err) {
+      console.log(err);
+      $('#modal').modal()
+      $('.modal-title').html("Network Error")
+      $('.modal-body p').html("Check your ajax connection. Error is being printed out in console.")
+      $('.modal-body .icon').html('<i class="fa fa-exclamation-triangle" aria-hidden="true"></i>')
+    });
+  })
+</script>

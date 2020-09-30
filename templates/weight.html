@@ -1,0 +1,74 @@
+
+
+<main>
+  <div class="row justify-content-center home-row">
+    <div class="col-lg-5">
+      <div class="card" style="padding: 3em 1em;">
+        <h1 class="text-center">Weight Tracker</h1>
+        <form>
+        <div class="form-group">
+          <label for="weight">Weight</label>
+          <input type="number" class="form-control" id="weight" name="weight" step="0.1">
+        </div>
+        <button type="submit" class="btn btn-primary btn-submit">Submit</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="modal" tabindex="-1" role="dialog" id="modal">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 style="display: inline-block; font-size: 1.5em;" class="modal-title"></h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="icon"></div>
+        <p class="text-center"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+  $(function(){
+
+    $('form').submit(function(e){
+      e.preventDefault()
+
+      let data = $(this).serialize()
+
+      $.ajax({
+        method: "POST",
+        url: "/add/weight",
+        data: data
+      })
+      .done(function(resp){
+          $('#modal').modal()
+          $('.modal-title').html(resp.Title)
+          $('.modal-body p').html(resp.Message)
+          $('.modal-body .icon').html(resp.Icon)
+
+          if(!resp.Error){
+            $('form')[0].reset()
+          }
+
+      })
+      .error(function(err){
+        console.log(err);
+        $('#modal').modal()
+        $('.modal-title').html("Network Error")
+        $('.modal-body p').html("Check your ajax connection. Error is being printed out in console.")
+        $('.modal-body .icon').html('<i class="fa fa-exclamation-triangle" aria-hidden="true"></i>')
+      })
+    })
+
+  })
+</script>
